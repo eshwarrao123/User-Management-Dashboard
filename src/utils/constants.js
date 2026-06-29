@@ -5,7 +5,7 @@
  */
 
 /** Base URL for the users REST API. Override via .env VITE_API_URL at build time. */
-export const API_URL = import.meta.env.VITE_API_URL || 'https://jsonplaceholder.typicode.com';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://jsonplaceholder.typicode.com/users';
 
 /**
  * List of available departments for filtering and form selection.
@@ -13,22 +13,20 @@ export const API_URL = import.meta.env.VITE_API_URL || 'https://jsonplaceholder.
  */
 export const DEPARTMENTS = [
   'Engineering',
-  'Product',
   'Design',
   'Marketing',
   'Sales',
-  'Human Resources',
+  'HR',
   'Finance',
+  'IT',
   'Operations',
-  'Legal',
-  'Customer Support',
 ];
 
 /**
  * Options for the number of rows displayed per page in the user table.
  * @type {number[]}
  */
-export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 /** Default number of rows per page on initial load. */
 export const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS[1]; // 10

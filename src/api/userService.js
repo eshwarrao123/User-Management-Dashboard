@@ -8,11 +8,11 @@
  */
 
 import axios from 'axios';
-import { API_URL } from '../utils/constants';
+import { API_URL } from '../utils/constants.js';
 
 /** Pre-configured axios instance with the base URL and default headers. */
 const apiClient = axios.create({
-  baseURL: `${API_URL}/users`,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,7 +45,7 @@ apiClient.interceptors.response.use(
  */
 export const getUsers = async (params = {}) => {
   try {
-    const response = await apiClient.get('/', { params });
+    const response = await apiClient.get('/', { params, timeout: 5000 });
     return { data: response.data, error: null };
   } catch (err) {
     console.error('[userService] getUsers failed:', err.message);
@@ -66,7 +66,7 @@ export const getUsers = async (params = {}) => {
  */
 export const createUser = async (userData) => {
   try {
-    const response = await apiClient.post('/', userData);
+    const response = await apiClient.post('/', userData, { timeout: 5000 });
     return { data: response.data, error: null };
   } catch (err) {
     console.error('[userService] createUser failed:', err.message);
@@ -83,7 +83,7 @@ export const createUser = async (userData) => {
  */
 export const updateUser = async (userId, updatedData) => {
   try {
-    const response = await apiClient.put(`/${userId}`, updatedData);
+    const response = await apiClient.put(`/${userId}`, updatedData, { timeout: 5000 });
     return { data: response.data, error: null };
   } catch (err) {
     console.error(`[userService] updateUser(${userId}) failed:`, err.message);
@@ -98,7 +98,7 @@ export const updateUser = async (userId, updatedData) => {
  */
 export const deleteUser = async (userId) => {
   try {
-    await apiClient.delete(`/${userId}`);
+    await apiClient.delete(`/${userId}`, { timeout: 5000 });
     return { data: true, error: null };
   } catch (err) {
     console.error(`[userService] deleteUser(${userId}) failed:`, err.message);

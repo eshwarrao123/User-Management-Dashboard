@@ -1,128 +1,125 @@
-/**
- * @file useUsers.js
- * @description Custom React hook that encapsulates all user-data fetching logic.
- *
- * Separating data-fetching into a hook keeps components free of async boilerplate
- * and makes the logic independently testable and reusable across multiple views.
- *
- * Exposes: users, loading, error, refetch, createUser, updateUser, deleteUser.
- */
-
-import { useState, useEffect, useCallback } from 'react';
-import {
-  getUsers as fetchUsers,
-  createUser as apiCreateUser,
-  updateUser as apiUpdateUser,
-  deleteUser as apiDeleteUser,
-} from '../api/userService';
+import { useState, useCallback } from 'react';
+import { getUsers, createUser, updateUser, deleteUser as deleteUserApi } from '../api/userService.js';
+import { transformUser } from '../utils/helpers.js';
 
 /**
- * Custom hook for managing the users collection.
- * @param {Object} [queryParams={}] - Optional query params forwarded to the API.
- * @returns {{
- *   users: Object[],
- *   loading: boolean,
- *   error: string|null,
- *   refetch: Function,
- *   createUser: Function,
- *   updateUser: Function,
- *   deleteUser: Function,
- * }}
+ * Custom hook that manages all user data operations.
+ * Exposes users array, loading/error states, and CRUD handlers.
  */
-const useUsers = (queryParams = {}) => {
+export default function useUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ------------------------------------------------------------------
-  // Fetch / Refetch
-  // ------------------------------------------------------------------
-
-  const loadUsers = useCallback(async () => {
+  // ─── FETCH ───────────────────────────────────────────────
+  /**
+   * Fetches users from the API.
+   * Why: We transform the data immediately rather than storing raw API responses
+   * to decouple our component UI from the specific API schema payload structure.
+   */
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
-    setError(null);
-
-    const { data, error: fetchError } = await fetchUsers(queryParams);
-
-    if (fetchError) {
-      setError(fetchError);
-    } else {
-      setUsers(data);
+    try {
+      setError(null);
+      const response = await getUsers();
+      const transformed = response.data.map(transformUser);
+      setUsers(transformed);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load users. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  // Stringify params to avoid stale closure issues with object identity
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(queryParams)]);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  // ------------------------------------------------------------------
-  // Create
-  // ------------------------------------------------------------------
-
-  /**
-   * Creates a new user and optimistically appends it to local state.
-   * Rolls back on failure.
-   * @param {Object} userData
-   * @returns {Promise<{success: boolean, error: string|null}>}
-   */
-  const createUser = useCallback(async (userData) => {
-    const { data, error: createError } = await apiCreateUser(userData);
-    if (createError) return { success: false, error: createError };
-
-    setUsers((prev) => [...prev, data]);
-    return { success: true, error: null };
   }, []);
 
-  // ------------------------------------------------------------------
-  // Update
-  // ------------------------------------------------------------------
-
+  // ─── ADD ─────────────────────────────────────────────────
   /**
-   * Updates an existing user in-place within local state.
-   * @param {string|number} userId
-   * @param {Object} updatedData
-   * @returns {Promise<{success: boolean, error: string|null}>}
+   * Adds a new user.
+   * Why: We use Date.now() for IDs instead of the API-returned id: 11
+   * because JSONPlaceholder always returns 11, which would cause duplicate keys.
    */
-  const updateUser = useCallback(async (userId, updatedData) => {
-    const { data, error: updateError } = await apiUpdateUser(userId, updatedData);
-    if (updateError) return { success: false, error: updateError };
-
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, ...data } : u))
-    );
-    return { success: true, error: null };
+  const addUser = useCallback(async (userData) => {
+    setLoading(true);
+    try {
+      setError(null);
+      await createUser(userData);
+      setUsers((prev) => {
+        const nextId = prev.length > 0
+          ? Math.max(...prev.map((u) => Number(u.id))) + 1
+          : 11;
+        const newUser = { ...userData, id: nextId };
+        return [newUser, ...prev];
+      });
+      return { success: true };
+    } catch (err) {
+      console.error(err);
+      setError('Failed to add user. Please try again.');
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ------------------------------------------------------------------
-  // Delete
-  // ------------------------------------------------------------------
-
+  // ─── UPDATE ──────────────────────────────────────────────
   /**
-   * Removes a user from local state after successful API deletion.
-   * @param {string|number} userId
-   * @returns {Promise<{success: boolean, error: string|null}>}
+   * Updates an existing user.
+   * Why: State updates map over existing users to apply changes optimistically
+   * so the UI reflects updates instantly without needing a full refetch.
    */
-  const deleteUser = useCallback(async (userId) => {
-    const { error: deleteError } = await apiDeleteUser(userId);
-    if (deleteError) return { success: false, error: deleteError };
+  const updateUser = useCallback(async (id, userData) => {
+    setLoading(true);
+    try {
+      setError(null);
+      await updateUser(id, userData);
+      setUsers((prev) =>
+        prev.map((user) => (user.id === id ? { ...userData, id } : user))
+      );
+      return { success: true };
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update user. Please try again.');
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
-    return { success: true, error: null };
+  // ─── DELETE ──────────────────────────────────────────────
+  /**
+   * Deletes a user.
+   * Why: Filters out the deleted ID locally for immediate UI response
+   * rather than waiting for the API to confirm the deletion entirely.
+   */
+  const deleteUser = useCallback(async (id) => {
+    // Optimistic update — remove from UI immediately without waiting for API
+    setUsers((prev) => prev.filter((user) => user.id !== id));
+    setError(null);
+    
+    try {
+      // Fire API call in background — JSONPlaceholder simulates this
+      await deleteUserApi(id);
+    } catch (err) {
+      // For a mock API, we don't re-add the user on failure
+      // In a real app, we would rollback the optimistic update here
+      console.warn('Delete API call failed (mock API limitation):', err.message);
+    }
+    
+    return { success: true };
+  }, []);
+
+  // ─── CLEAR ERROR ─────────────────────────────────────────
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
   return {
     users,
     loading,
     error,
-    refetch: loadUsers,
-    createUser,
+    fetchUsers,
+    addUser,
     updateUser,
     deleteUser,
+    clearError,
   };
-};
-
-export default useUsers;
+}

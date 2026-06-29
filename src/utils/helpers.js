@@ -1,10 +1,47 @@
-/**
- * @file helpers.js
- * @description General-purpose utility functions for the User Management Dashboard.
- * These are pure functions with no side-effects, making them easy to test and reuse.
- */
+import { SORT_ORDER, DEPARTMENTS } from './constants.js';
 
-import { SORT_ORDER } from './constants';
+/**
+ * Assigns a department by rotating through the DEPARTMENTS array.
+ * We use (id - 1) so that id=1 maps to index 0 (Engineering), not index 1.
+ */
+export function generateDepartment(id) {
+  return DEPARTMENTS[(Math.max(0, id - 1)) % DEPARTMENTS.length];
+}
+
+/**
+ * Transforms a raw JSONPlaceholder user object into our app's shape.
+ * Splits "Leanne Graham" → firstName: "Leanne", lastName: "Graham".
+ * Three-word names like "Mary Jane Watson" → firstName: "Mary", lastName: "Jane Watson".
+ */
+export function transformUser(apiUser) {
+  const parts = apiUser.name.trim().split(' ');
+  return {
+    id: apiUser.id,
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' ') || '',
+    email: apiUser.email,
+    department: generateDepartment(apiUser.id),
+  };
+}
+
+/**
+ * Returns background, text, and border colors for a department badge.
+ * Kept here so UserRow and ConfirmDelete both use the same color mapping
+ * without duplicating the object in two places.
+ */
+export function getDepartmentColor(department) {
+  const colorMap = {
+    Engineering: { bg: '#dbeafe', color: '#1d4ed8', border: '#bfdbfe' },
+    Design:      { bg: '#fce7f3', color: '#be185d', border: '#fbcfe8' },
+    Marketing:   { bg: '#fef3c7', color: '#d97706', border: '#fde68a' },
+    Sales:       { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
+    HR:          { bg: '#f3e8ff', color: '#7c3aed', border: '#e9d5ff' },
+    Finance:     { bg: '#ffedd5', color: '#c2410c', border: '#fed7aa' },
+    IT:          { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd' },
+    Operations:  { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  };
+  return colorMap[department] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
+}
 
 /**
  * Sorts an array of user objects by a given field and direction.

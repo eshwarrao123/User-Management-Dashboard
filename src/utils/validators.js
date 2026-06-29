@@ -1,107 +1,61 @@
 /**
  * @file validators.js
  * @description Pure validation functions for user form fields.
- * Each validator returns `null` on success or a human-readable error string on failure.
- * Keeping validation logic here (not inside components) keeps components lean and
- * makes it trivial to unit-test rules in isolation.
  */
 
-/**
- * Validates that a value is non-empty after trimming whitespace.
- * @param {string} value - The input value to check.
- * @param {string} [fieldName='Field'] - Label used in the error message.
- * @returns {string|null} Error message or null if valid.
- */
-export const validateRequired = (value, fieldName = 'Field') => {
-  if (!value || String(value).trim() === '') {
-    return `${fieldName} is required.`;
-  }
-  return null;
+export const isRequired = (value) => {
+  if (!value || String(value).trim() === '') return false;
+  return true;
+};
+
+export const isMinLength = (value, min) => {
+  if (!value) return false;
+  return String(value).trim().length >= min;
+};
+
+export const isOnlyLettersAndSpaces = (value) => {
+  if (!value) return false;
+  return /^[a-zA-Z\s]+$/.test(value);
+};
+
+export const isValidEmail = (email) => {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
 };
 
 /**
- * Validates an email address against a standard RFC-5322 simplified pattern.
- * @param {string} email - The email string to validate.
- * @returns {string|null} Error message or null if valid.
- */
-export const validateEmail = (email) => {
-  const requiredError = validateRequired(email, 'Email');
-  if (requiredError) return requiredError;
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(String(email).toLowerCase())) {
-    return 'Please enter a valid email address.';
-  }
-  return null;
-};
-
-/**
- * Validates a full name: required, at least two words, no numeric characters.
- * @param {string} name - The name string to validate.
- * @returns {string|null} Error message or null if valid.
- */
-export const validateName = (name) => {
-  const requiredError = validateRequired(name, 'Name');
-  if (requiredError) return requiredError;
-
-  const trimmed = String(name).trim();
-  if (trimmed.split(/\s+/).length < 2) {
-    return 'Please enter a full name (first and last).';
-  }
-  if (/\d/.test(trimmed)) {
-    return 'Name must not contain numbers.';
-  }
-  return null;
-};
-
-/**
- * Validates a phone number: optional field, but if provided must be 10–15 digits.
- * @param {string} phone - The phone number string to validate.
- * @returns {string|null} Error message or null if valid.
- */
-export const validatePhone = (phone) => {
-  if (!phone || String(phone).trim() === '') return null; // optional field
-  const digits = String(phone).replace(/[\s\-().+]/g, '');
-  if (!/^\d{10,15}$/.test(digits)) {
-    return 'Phone number must be between 10 and 15 digits.';
-  }
-  return null;
-};
-
-/**
- * Validates the entire user form object and returns a map of field -> error.
- * @param {Object} formData - The form values to validate.
- * @param {string} formData.name
- * @param {string} formData.email
- * @param {string} formData.department
- * @param {string} formData.role
- * @param {string} [formData.phone]
- * @returns {Object.<string, string>} Map of field names to error strings (empty = no errors).
+ * Validates user form data.
+ * Why: This runs entirely client-side before any API call to save network round-trips
+ * and give instant feedback to the user on input errors.
  */
 export const validateUserForm = (formData) => {
   const errors = {};
 
-  const nameError = validateName(formData.name);
-  if (nameError) errors.name = nameError;
+  if (!isRequired(formData.firstName)) {
+    errors.firstName = 'First name is required.';
+  } else if (!isMinLength(formData.firstName, 2)) {
+    errors.firstName = 'First name must be at least 2 characters.';
+  } else if (!isOnlyLettersAndSpaces(formData.firstName)) {
+    errors.firstName = 'First name can only contain letters.';
+  }
 
-  const emailError = validateEmail(formData.email);
-  if (emailError) errors.email = emailError;
+  if (!isRequired(formData.lastName)) {
+    errors.lastName = 'Last name is required.';
+  } else if (!isMinLength(formData.lastName, 2)) {
+    errors.lastName = 'Last name must be at least 2 characters.';
+  } else if (!isOnlyLettersAndSpaces(formData.lastName)) {
+    errors.lastName = 'Last name can only contain letters.';
+  }
 
-  const departmentError = validateRequired(formData.department, 'Department');
-  if (departmentError) errors.department = departmentError;
+  if (!isRequired(formData.email)) {
+    errors.email = 'Email is required.';
+  } else if (!isValidEmail(formData.email)) {
+    errors.email = 'Please enter a valid email address.';
+  }
 
-  const roleError = validateRequired(formData.role, 'Role');
-  if (roleError) errors.role = roleError;
-
-  const phoneError = validatePhone(formData.phone);
-  if (phoneError) errors.phone = phoneError;
+  if (!isRequired(formData.department)) {
+    errors.department = 'Department is required.';
+  }
 
   return errors;
 };
-
-/**
- * Checks whether a validation errors object contains any errors.
- * @param {Object} errors - The errors map from validateUserForm.
- * @returns {boolean} True if there are no validation errors.
- */
-export const isFormValid = (errors) => Object.keys(errors).length === 0;
