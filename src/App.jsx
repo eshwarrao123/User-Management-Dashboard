@@ -1,292 +1,296 @@
-/**
- * @file App.jsx
- * @description Root application component for the User Management Dashboard.
- *
- * Owns all top-level UI state and orchestrates data flow between:
- * - useUsers hook (remote data + mutations)
- * - Filtering / sorting / pagination derived state
- * - Modal visibility flags
- *
- * Design principle: "One source of truth at the top." All child components
- * receive data and callbacks as props — no prop-drilling workarounds needed
- * at this scale. If state grows significantly, consider React Context or Zustand.
- */
+import { useEffect, useState, useMemo } from 'react';
+import useUsers from './hooks/useUsers.js';
+import Header from './components/Header.jsx';
+import UserTable from './components/UserTable.jsx';
+import SearchBar from './components/SearchBar.jsx';
+import Pagination from './components/Pagination.jsx';
+import FilterPopup from './components/FilterPopup.jsx';
+import UserForm from './components/UserForm.jsx';
+import ConfirmDelete from './components/ConfirmDelete.jsx';
+import './styles/global.css';
 
-import React, { useState, useMemo, useCallback } from 'react';
+function App() {
+  const {
+    users,
+    loading,
+    error,
+    fetchUsers,
+    addUser,
+    updateUser,
+    deleteUser,
+    clearError,
+  } = useUsers();
 
-import Header      from './components/Header';
-import SearchBar   from './components/SearchBar';
-import FilterPopup from './components/FilterPopup';
-import UserTable   from './components/UserTable';
-import Pagination  from './components/Pagination';
-import UserForm    from './components/UserForm';
-import ConfirmDelete from './components/ConfirmDelete';
-
-import useUsers from './hooks/useUsers';
-import { filterUsers, sortUsers, paginateItems, getTotalPages } from './utils/helpers';
-import { SORT_ORDER, DEFAULT_PAGE_SIZE } from './utils/constants';
-
-import './styles/App.css';
-
-const App = () => {
-  // ------------------------------------------------------------------
-  // Remote data via custom hook
-  // ------------------------------------------------------------------
-  const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
-
-  // ------------------------------------------------------------------
-  // Search & Filter state
-  // ------------------------------------------------------------------
-  const [searchQuery,    setSearchQuery]    = useState('');
-  const [filterCriteria, setFilterCriteria] = useState({ department: '', status: '' });
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
-
-  // ------------------------------------------------------------------
-  // Sort state
-  // ------------------------------------------------------------------
-  const [sortField, setSortField] = useState('name');
-  const [sortOrder, setSortOrder] = useState(SORT_ORDER.ASC);
-
-  // ------------------------------------------------------------------
-  // Pagination state
-  // ------------------------------------------------------------------
+  // ─── UI STATE ─────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState('id');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize,    setPageSize]    = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(10);
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [filterCriteria, setFilterCriteria] = useState({
+    firstName: '', lastName: '', email: '', department: '',
+  });
 
-  // ------------------------------------------------------------------
-  // Modal visibility flags
-  // ------------------------------------------------------------------
-  const [showUserForm,     setShowUserForm]     = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-
-  // ------------------------------------------------------------------
-  // Selected user (for edit / delete flows)
-  // ------------------------------------------------------------------
+  // ─── FORM STATE ───────────────────────────────────────────
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [formMode, setFormMode] = useState('add');
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // ------------------------------------------------------------------
-  // In-flight mutation flags
-  // ------------------------------------------------------------------
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting,   setIsDeleting]   = useState(false);
+  // ─── DELETE STATE ─────────────────────────────────────────
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
-  // ------------------------------------------------------------------
-  // Derived data (memoised to avoid redundant recalculation)
-  // ------------------------------------------------------------------
-  const filteredUsers = useMemo(
-    () => filterUsers(users, searchQuery, filterCriteria),
-    [users, searchQuery, filterCriteria]
-  );
+  // ─── TOAST STATE ──────────────────────────────────────────
+  const [toast, setToast] = useState(null);
 
-  const sortedUsers = useMemo(
-    () => sortUsers(filteredUsers, sortField, sortOrder),
-    [filteredUsers, sortField, sortOrder]
-  );
+  // ─── FETCH ON MOUNT ───────────────────────────────────────
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
-  const totalPages    = useMemo(() => getTotalPages(sortedUsers.length, pageSize), [sortedUsers.length, pageSize]);
-  const paginatedUsers = useMemo(
-    () => paginateItems(sortedUsers, currentPage, pageSize),
-    [sortedUsers, currentPage, pageSize]
-  );
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
-  // ------------------------------------------------------------------
-  // Sort handler — toggles direction when same field is clicked twice
-  // ------------------------------------------------------------------
-  const handleSort = useCallback((field) => {
-    setSortField((prev) => {
-      if (prev === field) {
-        setSortOrder((o) => (o === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC));
-        return prev;
-      }
-      setSortOrder(SORT_ORDER.ASC);
-      return field;
+  function showToast(message, type = 'success') {
+    setToast({ message, type });
+  }
+
+  // ─── DERIVED DATA ─────────────────────────────────────────
+
+  /**
+   * Derived Data Pipeline
+   * Why: We use useMemo instead of useEffect+useState to compute this synchronously during render,
+   * avoiding extra renders. The 4-step pipeline ensures separation of concerns:
+   * 1. Search: Filters full set by text query.
+   * 2. Filter: Narrows down by specific fields.
+   * 3. Sort: Orders the results.
+   * 4. Paginate: Slices the ordered array for the current page.
+   */
+  const searchedUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.firstName.toLowerCase().includes(q) ||
+        u.lastName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q)
+    );
+  }, [users, searchQuery]);
+
+  const filteredUsers = useMemo(() => {
+    return searchedUsers.filter((u) => {
+      const f = filterCriteria;
+      if (f.firstName && !u.firstName.toLowerCase().includes(f.firstName.toLowerCase())) return false;
+      if (f.lastName && !u.lastName.toLowerCase().includes(f.lastName.toLowerCase())) return false;
+      if (f.email && !u.email.toLowerCase().includes(f.email.toLowerCase())) return false;
+      if (f.department && u.department !== f.department) return false;
+      return true;
     });
+  }, [searchedUsers, filterCriteria]);
+
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => {
+      const valA = String(a[sortField]).toLowerCase();
+      const valB = String(b[sortField]).toLowerCase();
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredUsers, sortField, sortOrder]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedUsers.slice(start, start + pageSize);
+  }, [sortedUsers, currentPage, pageSize]);
+
+  const activeFilterCount = Object.values(filterCriteria).filter(
+    (v) => v.trim() !== ''
+  ).length;
+
+  // ─── HANDLERS: SEARCH / SORT / PAGE ──────────────────────
+
+  function handleSearch(query) {
+    setSearchQuery(query);
     setCurrentPage(1);
-  }, []);
+  }
 
-  // ------------------------------------------------------------------
-  // Filter handlers
-  // ------------------------------------------------------------------
-  const handleFilterChange = useCallback((key, value) => {
-    setFilterCriteria((prev) => ({ ...prev, [key]: value }));
+  function handleSort(field) {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
     setCurrentPage(1);
-  }, []);
+  }
 
-  const handleFilterReset = useCallback(() => {
-    setFilterCriteria({ department: '', status: '' });
+  function handlePageChange(page) { setCurrentPage(page); }
+  function handlePageSizeChange(size) { setPageSize(size); setCurrentPage(1); }
+
+  function handleApplyFilter(criteria) {
+    setFilterCriteria(criteria);
     setCurrentPage(1);
-  }, []);
+  }
 
-  const handleSearchChange = useCallback((value) => {
-    setSearchQuery(value);
+  function handleClearFilter() {
+    setFilterCriteria({ firstName: '', lastName: '', email: '', department: '' });
     setCurrentPage(1);
-  }, []);
+  }
 
-  // ------------------------------------------------------------------
-  // Pagination handlers
-  // ------------------------------------------------------------------
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  // ─── HANDLERS: ADD / EDIT ─────────────────────────────────
 
-  const handlePageSizeChange = useCallback((size) => {
-    setPageSize(size);
-    setCurrentPage(1);
-  }, []);
-
-  // ------------------------------------------------------------------
-  // UserForm handlers
-  // ------------------------------------------------------------------
-  const openAddForm = useCallback(() => {
+  function handleOpenAddForm() {
+    clearError();
     setSelectedUser(null);
+    setFormMode('add');
     setShowUserForm(true);
-  }, []);
+  }
 
-  const openEditForm = useCallback((user) => {
+  function handleOpenEditForm(user) {
+    clearError();
     setSelectedUser(user);
+    setFormMode('edit');
     setShowUserForm(true);
-  }, []);
+  }
 
-  const closeUserForm = useCallback(() => {
+  function handleCloseForm() {
     setShowUserForm(false);
     setSelectedUser(null);
-  }, []);
+  }
 
-  const handleFormSubmit = useCallback(async (formData) => {
-    setIsSubmitting(true);
-    let result;
-
-    if (selectedUser) {
-      result = await updateUser(selectedUser.id, formData);
-    } else {
-      result = await createUser(formData);
+  async function handleFormSubmit(formData) {
+    clearError();
+    if (formMode === 'add') {
+      const result = await addUser(formData);
+      if (result.success) {
+        showToast('User added successfully!', 'success');
+      } else {
+        showToast('Failed to add user. Try again.', 'error');
+      }
+      return result;
     }
 
-    setIsSubmitting(false);
-
-    if (!result.error) {
-      closeUserForm();
-    } else {
-      // Surface API errors — in a full app, use a toast notification here
-      console.error('Submit error:', result.error);
+    if (formMode === 'edit') {
+      const result = await updateUser(selectedUser.id, formData);
+      if (result.success) {
+        showToast('User updated successfully!', 'success');
+      } else {
+        showToast('Failed to update user. Try again.', 'error');
+      }
+      return result;
     }
-  }, [selectedUser, createUser, updateUser, closeUserForm]);
+  }
 
-  // ------------------------------------------------------------------
-  // ConfirmDelete handlers
-  // ------------------------------------------------------------------
-  const openConfirmDelete = useCallback((user) => {
-    setSelectedUser(user);
+  // ─── HANDLERS: DELETE ─────────────────────────────────────
+
+  function handleDeleteClick(user) {
+    clearError();
+    setUserToDelete(user);
     setShowConfirmDelete(true);
-  }, []);
+  }
 
-  const closeConfirmDelete = useCallback(() => {
-    setShowConfirmDelete(false);
-    setSelectedUser(null);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!selectedUser) return;
-    setIsDeleting(true);
-    const result = await deleteUser(selectedUser.id);
-    setIsDeleting(false);
-
-    if (!result.error) {
-      closeConfirmDelete();
+  async function handleConfirmDelete() {
+    if (!userToDelete) return;
+    const result = await deleteUser(userToDelete.id);
+    if (result.success) {
+      showToast(
+        `${userToDelete.firstName} ${userToDelete.lastName} deleted.`,
+        'success'
+      );
     } else {
-      console.error('Delete error:', result.error);
+      showToast('Failed to delete user. Try again.', 'error');
     }
-  }, [selectedUser, deleteUser, closeConfirmDelete]);
+    setShowConfirmDelete(false);
+    setUserToDelete(null);
+  }
 
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
+  function handleCancelDelete() {
+    setShowConfirmDelete(false);
+    setUserToDelete(null);
+  }
+
+  // ─── RENDER ───────────────────────────────────────────────
   return (
     <div className="app">
-      <Header onAddUser={openAddForm} />
+      <Header onAddUser={handleOpenAddForm} />
 
-      <main className="app__main" id="main-content">
-        {/* Global error banner */}
+      <main className="app-main">
         {error && (
-          <div className="app__error-banner" role="alert">
-            ⚠️ {error}
+          <div className="error-banner">
+            {error}
+            <button onClick={clearError} className="error-close">✕</button>
           </div>
         )}
 
-        {/* Toolbar: search + filter toggle */}
-        <div className="app__toolbar">
-          <SearchBar value={searchQuery} onChange={handleSearchChange} />
-
-          <div className="app__filter-wrapper">
-            <button
-              id="btn-toggle-filter"
-              className={`btn btn--secondary ${showFilterPopup ? 'btn--active' : ''}`}
-              onClick={() => setShowFilterPopup((prev) => !prev)}
-              aria-expanded={showFilterPopup}
-              aria-haspopup="dialog"
-            >
-              ⚙️ Filters
-              {(filterCriteria.department || filterCriteria.status) && (
-                <span className="filter-badge" aria-label="Active filters">●</span>
-              )}
-            </button>
-
-            {showFilterPopup && (
-              <FilterPopup
-                filterCriteria={filterCriteria}
-                onFilterChange={handleFilterChange}
-                onReset={handleFilterReset}
-                onClose={() => setShowFilterPopup(false)}
-              />
+        <div className="toolbar">
+          <SearchBar searchQuery={searchQuery} onSearch={handleSearch} />
+          <button
+            className={`btn-filter ${activeFilterCount > 0 ? 'btn-filter-active' : ''}`}
+            onClick={() => setShowFilterPopup(true)}
+          >
+            ⚙ Filter
+            {activeFilterCount > 0 && (
+              <span className="filter-count-badge">{activeFilterCount}</span>
             )}
-          </div>
+          </button>
         </div>
 
-        {/* Data table */}
         <UserTable
           users={paginatedUsers}
-          loading={loading}
           sortField={sortField}
           sortOrder={sortOrder}
           onSort={handleSort}
-          onEdit={openEditForm}
-          onDelete={openConfirmDelete}
+          onEdit={handleOpenEditForm}
+          onDelete={handleDeleteClick}
+          loading={loading}
         />
 
-        {/* Pagination */}
-        {!loading && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedUsers.length}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={sortedUsers.length}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </main>
 
-      {/* Modals */}
-      {showUserForm && (
-        <UserForm
-          initialData={selectedUser}
-          onSubmit={handleFormSubmit}
-          onClose={closeUserForm}
-          isSubmitting={isSubmitting}
-        />
+      {/* Toast */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? '✅' : '❌'} {toast.message}
+        </div>
       )}
 
-      {showConfirmDelete && (
-        <ConfirmDelete
-          user={selectedUser}
-          onConfirm={handleDeleteConfirm}
-          onCancel={closeConfirmDelete}
-          isDeleting={isDeleting}
-        />
-      )}
+      {/* Modals */}
+      <FilterPopup
+        isOpen={showFilterPopup}
+        onClose={() => setShowFilterPopup(false)}
+        onApply={handleApplyFilter}
+        onClear={handleClearFilter}
+        initialFilters={filterCriteria}
+      />
+
+      <UserForm
+        isOpen={showUserForm}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        initialData={selectedUser}
+        mode={formMode}
+      />
+
+      <ConfirmDelete
+        isOpen={showConfirmDelete}
+        user={userToDelete}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
-};
+}
 
 export default App;

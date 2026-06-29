@@ -1,0 +1,124 @@
+
+/* ═══════════════════════════════════════════
+   CONFIRM DELETE
+   ═══════════════════════════════════════════ */
+.confirm-panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1001;
+    overflow: hidden;
+    animation: slideUp 0.2s ease;
+}
+
+
+.confirm-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-5) var(--space-3);
+}
+
+
+.confirm-icon {
+    font-size: 1.6rem;
+}
+
+
+.confirm-title {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+
+.confirm-body {
+    padding: 0 var(--space-5) var(--space-4);
+}
+
+
+.confirm-message {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+
+.confirm-message strong {
+    color: var(--text-primary);
+}
+
+
+.confirm-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-1);
+}
+
+
+.confirm-user-card {
+    margin: 0 var(--space-5) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+
+.confirm-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+
+.confirm-user-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: var(--text-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    flex-shrink: 0;
+}
+
+
+.confirm-user-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.confirm-user-email {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.confirm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+}

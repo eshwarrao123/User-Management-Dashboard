@@ -1,0 +1,416 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body { background: var(--bg); }
+.app { background: var(--bg); min-height: 100vh; }
+.app-main { background: var(--bg); padding: var(--space-6); }
+
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+:root {
+    /* Colors */
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;
+    --primary-border: #bfdbfe;
+
+    --danger: #dc2626;
+    --danger-dark: #b91c1c;
+    --danger-light: #fee2e2;
+
+    --success: #16a34a;
+    --success-light: #dcfce7;
+
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+
+    --surface: #ffffff;
+    --bg: #f8fafc;
+    --bg-subtle: #f1f5f9;
+
+    --border: #e2e8f0;
+    --border-dark: #cbd5e1;
+
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --text-white: #ffffff;
+
+    /* Typography */
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --text-xs: 0.72rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.4rem;
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    /* Radii */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+    --radius-xl: 16px;
+    --radius-full: 999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.14);
+
+    /* Transitions */
+    --transition: 0.15s ease;
+}
+
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════ */
+*,
+
+*::before,
+
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+body {
+    font-family: var(--font);
+    font-size: var(--text-base);
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+button {
+    font-family: var(--font);
+    cursor: pointer;
+}
+
+
+input,
+
+select,
+
+textarea {
+    font-family: var(--font);
+}
+
+
+
+
+/* ═══════════════════════════════════════════
+   APP SHELL
+   ═══════════════════════════════════════════ */
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT
+   ═══════════════════════════════════════════ */
+.app-main {
+    padding: var(--space-6);
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════ */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 9px 18px;
+    background: var(--primary);
+    color: var(--text-white);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: background var(--transition);
+    min-height: 44px;
+}
+
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 9px 18px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: background var(--transition), border-color var(--transition);
+    min-height: 44px;
+}
+
+
+.btn-secondary:hover {
+    background: var(--bg-subtle);
+    border-color: var(--border-dark);
+}
+
+
+.btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 9px 18px;
+    background: var(--danger);
+    color: var(--text-white);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: background var(--transition);
+    min-height: 44px;
+}
+
+
+.btn-danger:hover {
+    background: var(--danger-dark);
+}
+
+
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 9px 18px;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-white);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: background var(--transition), border-color var(--transition);
+    min-height: 44px;
+    backdrop-filter: blur(4px);
+}
+
+
+.btn-add:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+
+/* ═══════════════════════════════════════════
+   ERROR BANNER
+   ═══════════════════════════════════════════ */
+.error-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+
+.error-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--danger);
+    font-size: var(--text-base);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.error-close:hover {
+    background: #fecaca;
+}
+
+
+/* ═══════════════════════════════════════════
+   TOOLBAR
+   ═══════════════════════════════════════════ */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+
+.empty-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: var(--space-3);
+    opacity: 0.6;
+}
+
+
+/* ═══════════════════════════════════════════
+   MODAL OVERLAY
+   ═══════════════════════════════════════════ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-4);
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.15s ease;
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition), color var(--transition);
+}
+
+
+.modal-close:hover {
+    background: var(--bg-subtle);
+    color: var(--text-primary);
+}
+
+
+/* ═══════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════ */
+.toast {
+    position: fixed;
+    top: var(--space-5);
+    right: var(--space-5);
+    padding: 12px var(--space-5);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    box-shadow: var(--shadow-md);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    animation: slideIn 0.2s ease;
+    max-width: 320px;
+}
+
+
+.toast-success {
+    background: var(--success-light);
+    color: var(--success);
+    border: 1px solid #86efac;
+}
+
+
+.toast-error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid #fca5a5;
+}
+
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════ */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
