@@ -1,44 +1,23 @@
-/**
- * @file SearchBar.jsx
- * @description Controlled search input used to filter the user list by name or email.
- * Debouncing is intentionally left to the parent (via helpers.debounce) to keep
- * this component pure and reusable in other contexts.
- *
- * @param {Object}   props
- * @param {string}   props.value       - Current search query value (controlled).
- * @param {Function} props.onChange    - Callback receiving the new query string.
- * @param {string}   [props.placeholder] - Input placeholder text.
- */
-
-import React from 'react';
 import '../styles/SearchBar.css';
-
-const SearchBar = ({
-  value,
-  onChange,
-  placeholder = 'Search by name or email…',
-}) => {
-  const handleChange = (e) => onChange(e.target.value);
-
-  const handleClear = () => onChange('');
-
+/**
+ * SearchBar — controlled search input with a clear button.
+ */
+export default function SearchBar({ searchQuery, onSearch }) {
   return (
-    <div className="search-bar" role="search">
-      <span className="search-bar__icon" aria-hidden="true">🔍</span>
+    <div className="search-bar">
+      <span className="search-icon">🔍</span>
       <input
-        id="input-search"
-        type="search"
-        className="search-bar__input"
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
+        type="text"
+        className="search-input"
+        placeholder="Search by name or email..."
+        value={searchQuery}
+        onChange={(e) => onSearch(e.target.value)}
         aria-label="Search users"
-        autoComplete="off"
       />
-      {value && (
+      {searchQuery && (
         <button
-          className="search-bar__clear"
-          onClick={handleClear}
+          className="search-clear"
+          onClick={() => onSearch('')}
           aria-label="Clear search"
         >
           ✕
@@ -46,6 +25,4 @@ const SearchBar = ({
       )}
     </div>
   );
-};
-
-export default SearchBar;
+}

@@ -1,106 +1,102 @@
-/**
- * @file UserTable.jsx
- * @description Data table that renders the paginated, filtered, sorted list of users.
- * Delegates individual row rendering to UserRow. Handles empty-state and loading-state UI.
- * Column headers are clickable for sorting.
- *
- * @param {Object}    props
- * @param {Object[]}  props.users        - The (already filtered + paginated) user array.
- * @param {boolean}   props.loading      - Whether data is being fetched.
- * @param {string}    props.sortField    - Currently active sort field key.
- * @param {string}    props.sortOrder    - 'asc' | 'desc'.
- * @param {Function}  props.onSort       - Callback: (field: string) => void.
- * @param {Function}  props.onEdit       - Callback: (user: Object) => void.
- * @param {Function}  props.onDelete     - Callback: (user: Object) => void.
- */
-
-import React from 'react';
-import UserRow from './UserRow';
-import { SORT_ORDER } from '../utils/constants';
+import { getDepartmentColor } from '../utils/helpers.js';
+import UserRow from './UserRow.jsx';
 import '../styles/UserTable.css';
 
-/** Column definitions: label shown in header and the sort field key. */
-const COLUMNS = [
-  { label: 'Name',       field: 'name' },
-  { label: 'Department', field: 'department' },
-  { label: 'Role',       field: 'role' },
-  { label: 'Status',     field: 'status' },
-  { label: 'Created',    field: 'createdAt' },
-  { label: 'Actions',    field: null }, // not sortable
-];
+/**
+ * UserTable — renders the full data table with sortable column headers.
+ * Handles loading skeleton and empty state internally.
+ * The # column shows position within the current page, not the user's ID.
+ */
+export default function UserTable({ users, sortField, sortOrder, onSort, onEdit, onDelete, loading }) {
 
-const SortIcon = ({ field, sortField, sortOrder }) => {
-  if (field !== sortField) return <span className="sort-icon sort-icon--idle">⇅</span>;
-  return (
-    <span className="sort-icon sort-icon--active">
-      {sortOrder === SORT_ORDER.ASC ? '↑' : '↓'}
-    </span>
-  );
-};
+  const sortableColumns = [
+    { key: 'id',         label: 'ID' },
+    { key: 'firstName',  label: 'First Name' },
+    { key: 'lastName',   label: 'Last Name' },
+    { key: 'email',      label: 'Email' },
+    { key: 'department', label: 'Department' },
+  ];
 
-const UserTable = ({ users, loading, sortField, sortOrder, onSort, onEdit, onDelete }) => {
+  function renderSortIndicator(key) {
+    if (sortField !== key) return <span className="sort-arrow inactive">↕</span>;
+    return (
+      <span className="sort-arrow active">
+        {sortOrder === 'asc' ? '↑' : '↓'}
+      </span>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="user-table__loading" role="status" aria-live="polite">
-        <span className="spinner" aria-hidden="true" />
-        <p>Loading users…</p>
+      <div className="table-wrapper">
+        <table className="user-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              {sortableColumns.map((col) => (
+                <th key={col.key}>{col.label}</th>
+              ))}
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <tr key={i} className="skeleton-row">
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <td key={j}><div className="skeleton-cell" /></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <div className="table-wrapper">
+        <div className="empty-state">
+          <span className="empty-icon">🔍</span>
+          <p>No users found.</p>
+          <small>Try adjusting your search or filters.</small>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="user-table__wrapper">
-      <table className="user-table" aria-label="Users data table">
-        <thead className="user-table__head">
+    <div className="table-wrapper">
+      <table className="user-table" role="table">
+        <thead>
           <tr>
-            {COLUMNS.map(({ label, field }) => (
+            {/* # column is not sortable — it reflects page position only */}
+            <th scope="col" className="col-index">#</th>
+            {sortableColumns.map((col) => (
               <th
-                key={label}
-                className={`user-table__th ${field ? 'user-table__th--sortable' : ''}`}
-                onClick={field ? () => onSort(field) : undefined}
-                aria-sort={
-                  field === sortField
-                    ? sortOrder === SORT_ORDER.ASC
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
+                key={col.key}
+                onClick={() => onSort(col.key)}
+                className={`sortable-th ${sortField === col.key ? 'active-sort' : ''}`}
                 scope="col"
               >
-                {label}
-                {field && (
-                  <SortIcon
-                    field={field}
-                    sortField={sortField}
-                    sortOrder={sortOrder}
-                  />
-                )}
+                {col.label} {renderSortIndicator(col.key)}
               </th>
             ))}
+            <th scope="col">Actions</th>
           </tr>
         </thead>
-
-        <tbody className="user-table__body">
-          {users.length === 0 ? (
-            <tr>
-              <td colSpan={COLUMNS.length} className="user-table__empty">
-                No users found matching your criteria.
-              </td>
-            </tr>
-          ) : (
-            users.map((user) => (
-              <UserRow
-                key={user.id}
-                user={user}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            ))
-          )}
+        <tbody>
+          {users.map((user, index) => (
+            <UserRow
+              key={user.id}
+              user={user}
+              rowIndex={index + 1}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
         </tbody>
       </table>
     </div>
   );
-};
-
-export default UserTable;
+}

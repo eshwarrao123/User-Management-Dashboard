@@ -1,49 +1,80 @@
-/**
- * @file Pagination.jsx
- * @description Pagination controls: page size selector, prev/next buttons, and
- * a page indicator. Keeps no internal state — fully controlled by the parent.
- *
- * @param {Object}   props
- * @param {number}   props.currentPage    - 1-indexed current page number.
- * @param {number}   props.totalPages     - Total number of pages available.
- * @param {number}   props.pageSize       - Items currently shown per page.
- * @param {number}   props.totalItems     - Total item count (for display).
- * @param {Function} props.onPageChange   - Callback: (newPage: number) => void.
- * @param {Function} props.onPageSizeChange - Callback: (newSize: number) => void.
- */
-
-import React from 'react';
-import { PAGE_SIZE_OPTIONS } from '../utils/constants';
 import '../styles/Pagination.css';
+import { PAGE_SIZE_OPTIONS } from '../utils/constants.js';
 
-const Pagination = ({
-  currentPage,
-  totalPages,
-  pageSize,
-  totalItems,
-  onPageChange,
-  onPageSizeChange,
-}) => {
-  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+/**
+ * Pagination — shows page controls, page size selector, and result count.
+ */
+export default function Pagination({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
+  const pageCount = Math.ceil(totalItems / pageSize);
+  const firstItemIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastItemIndex = Math.min(currentPage * pageSize, totalItems);
+
+  // Build page number buttons — show max 5 pages with ellipsis
+  function getPageNumbers() {
+    if (pageCount <= 5) {
+      return Array.from({ length: pageCount }, (_, i) => i + 1);
+    }
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage >= pageCount - 2) {
+      return [
+        pageCount - 4,
+        pageCount - 3,
+        pageCount - 2,
+        pageCount - 1,
+        pageCount,
+      ];
+    }
+    return [
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+    ];
+  }
 
   return (
-    <nav className="pagination" aria-label="Table pagination">
-      {/* Items count summary */}
-      <span className="pagination__summary">
-        {totalItems === 0
-          ? 'No results'
-          : `Showing ${startItem}–${endItem} of ${totalItems} users`}
-      </span>
+    <div className="pagination">
+      <div className="pagination-info">
+        Showing <strong>{firstItemIndex}–{lastItemIndex}</strong> of <strong>{totalItems}</strong> users
+      </div>
 
-      {/* Page size selector */}
-      <div className="pagination__size">
-        <label htmlFor="page-size-select" className="pagination__size-label">
-          Rows per page:
-        </label>
+      <div className="pagination-controls">
+        <button
+          className="page-btn"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          aria-label="Previous page"
+        >
+          ← Prev
+        </button>
+
+        {getPageNumbers().map((page) => (
+          <button
+            key={page}
+            className={`page-btn ${currentPage === page ? 'page-btn-active' : ''}`}
+            onClick={() => onPageChange(page)}
+            aria-label={`Page ${page}`}
+            aria-current={currentPage === page ? 'page' : undefined}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          className="page-btn"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === pageCount || pageCount === 0}
+          aria-label="Next page"
+        >
+          Next →
+        </button>
+      </div>
+
+      <div className="pagination-size">
+        <label htmlFor="page-size">Rows per page:</label>
         <select
-          id="page-size-select"
-          className="pagination__size-select"
+          id="page-size"
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
         >
@@ -52,53 +83,6 @@ const Pagination = ({
           ))}
         </select>
       </div>
-
-      {/* Page navigation */}
-      <div className="pagination__nav" role="group" aria-label="Page navigation">
-        <button
-          id="btn-page-first"
-          className="pagination__btn"
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          aria-label="First page"
-        >
-          «
-        </button>
-        <button
-          id="btn-page-prev"
-          className="pagination__btn"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          aria-label="Previous page"
-        >
-          ‹
-        </button>
-
-        <span className="pagination__indicator" aria-current="page">
-          {currentPage} / {totalPages}
-        </span>
-
-        <button
-          id="btn-page-next"
-          className="pagination__btn"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          aria-label="Next page"
-        >
-          ›
-        </button>
-        <button
-          id="btn-page-last"
-          className="pagination__btn"
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
-          aria-label="Last page"
-        >
-          »
-        </button>
-      </div>
-    </nav>
+    </div>
   );
-};
-
-export default Pagination;
+}

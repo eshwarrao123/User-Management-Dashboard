@@ -1,80 +1,55 @@
-/**
- * @file UserRow.jsx
- * @description Renders a single row within the UserTable.
- * Stateless — receives user data and callbacks for edit / delete actions.
- *
- * @param {Object}   props
- * @param {Object}   props.user         - User object to display.
- * @param {Function} props.onEdit       - Callback invoked with the user to edit.
- * @param {Function} props.onDelete     - Callback invoked with the user to delete.
- */
-
-import React from 'react';
-import { getInitials, formatDate } from '../utils/helpers';
+import { getDepartmentColor } from '../utils/helpers.js';
 import '../styles/UserRow.css';
 
-/** Maps status values to CSS modifier classes. */
-const STATUS_CLASS = {
-  active: 'badge--success',
-  inactive: 'badge--danger',
-  pending: 'badge--warning',
-};
-
-const UserRow = ({ user, onEdit, onDelete }) => {
-  const { id, name, email, department, role, status, createdAt } = user;
-  const initials = getInitials(name);
-  const badgeClass = STATUS_CLASS[status] ?? 'badge--neutral';
+/**
+ * UserRow — renders a single user as a table row.
+ * rowIndex is the 1-based position within the current page (not the user's database ID).
+ */
+export default function UserRow({ user, rowIndex, onEdit, onDelete }) {
+  const deptColors = getDepartmentColor(user.department);
 
   return (
-    <tr className="user-row" data-user-id={id}>
-      {/* Avatar + Name */}
-      <td className="user-row__cell user-row__cell--name">
-        <div className="user-row__identity">
-          <span className="user-row__avatar" aria-hidden="true">
-            {initials}
-          </span>
-          <div>
-            <span className="user-row__name">{name}</span>
-            <span className="user-row__email">{email}</span>
-          </div>
-        </div>
+    <tr className="user-row">
+      <td className="row-index">{rowIndex}</td>
+      <td>{user.id}</td>
+      <td>{user.firstName}</td>
+      <td>{user.lastName}</td>
+      <td>
+        <a
+          href={`mailto:${user.email}`}
+          className="email-link"
+        >
+          {user.email}
+        </a>
       </td>
-
-      <td className="user-row__cell">{department || '—'}</td>
-      <td className="user-row__cell">{role || '—'}</td>
-
-      {/* Status Badge */}
-      <td className="user-row__cell">
-        <span className={`badge ${badgeClass}`}>
-          {status ? status.charAt(0).toUpperCase() + status.slice(1) : '—'}
+      <td>
+        <span
+          className="department-badge"
+          style={{
+            background: deptColors.bg,
+            color: deptColors.color,
+            border: `1px solid ${deptColors.border}`,
+          }}
+        >
+          {user.department}
         </span>
       </td>
-
-      <td className="user-row__cell">{formatDate(createdAt)}</td>
-
-      {/* Actions */}
-      <td className="user-row__cell user-row__cell--actions">
+      <td className="actions-cell">
         <button
-          id={`btn-edit-${id}`}
-          className="btn btn--icon"
+          className="btn-icon btn-edit"
           onClick={() => onEdit(user)}
-          aria-label={`Edit ${name}`}
-          title="Edit user"
+          aria-label={`Edit ${user.firstName} ${user.lastName}`}
         >
           ✏️
         </button>
         <button
-          id={`btn-delete-${id}`}
-          className="btn btn--icon btn--danger-icon"
+          className="btn-icon btn-delete"
           onClick={() => onDelete(user)}
-          aria-label={`Delete ${name}`}
-          title="Delete user"
+          aria-label={`Delete ${user.firstName} ${user.lastName}`}
         >
           🗑️
         </button>
       </td>
     </tr>
   );
-};
-
-export default UserRow;
+}
